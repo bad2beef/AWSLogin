@@ -6,10 +6,14 @@ Function Get-AWSToken
             Gets an AWS token via STS.
 
         .DESCRIPTION
-            Gets an AWS token via STS. Tokens are suitable for use in API calls, including use of AWS CLI. By default token data is written to environment variables.
+            Gets an AWS token via STS. Tokens are suitable for use in API
+            calls, including use of AWS CLI. By default token data is written
+            to environment variables.
         
         .PARAMETER OktaAppURI
-            The full URI to the Okta app instance. This is the URI one would navigate to if clicking on the application instance in the Okta porta.
+            The full URI to the Okta app instance. This is the URI one would
+            navigate to if clicking on the application instance in the Okta
+            portal.
 
         .PARAMETER RoleARN
             Full ARN of the AWS role to assume.
