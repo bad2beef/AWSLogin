@@ -38,7 +38,18 @@ Function Get-AWSToken
         [String]$RoleARN,
 
         [Parameter(Mandatory=$true)]
-        [String]$PrincipalARN
+        [String]$PrincipalARN,
+
+        [System.Management.Automation.PSCredential]$Credential = ( Get-Credential ),
+
+        [ValidateSet(
+            'call',
+            'push',
+            'sms',
+            'token:software:totp'
+        )]
+        [String]$MFAType = 'push',
+        [String]$MFACode
     )
 
     # Verify AWS CLI command exist as we use it to get a token later.
@@ -62,7 +73,7 @@ Function Get-AWSToken
     $OktaDomain = $OktaAppUri.Split( '/' )[2]
 
     Write-Verbose 'Getting Okta session token.'
-    $OktaSessionToken = Get-OktaSessionToken -OktaDomain $OktaDomain
+    $OktaSessionToken = Get-OktaSessionToken -OktaDomain $OktaDomain -Credential $Credential -MFAType $MFAType -MFACode $MFACode
     If ( -not $OktaSessionToken )
     {
         Write-Error 'Could not obtain session token.'

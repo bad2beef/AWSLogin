@@ -26,3 +26,13 @@ PS> Get-AWSToken `
         -RoleARN 'arn:aws:iam::XXXXXXXXXXXX:role/RoleToAssume' `
         -PrincipalARN 'arn:aws:iam::XXXXXXXXXXXX:saml-provider/MySAMLProvider'
 ```
+### Specific MFA Login
+This option allows you to force a particular supported MFA type and/or specify the MFA code ahead of time if it is known (TTOP).
+```powershell
+PS> Get-AWSToken `
+        -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance' `
+        -RoleARN 'arn:aws:iam::XXXXXXXXXXXX:role/RoleToAssume' `
+        -PrincipalARN 'arn:aws:iam::XXXXXXXXXXXX:saml-provider/MySAMLProvider' `
+        -MFAType 'token:software:totp' `
+        -MFACode 123456
+```
