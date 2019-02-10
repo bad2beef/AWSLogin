@@ -66,7 +66,7 @@ Function Get-AWSToken
   # Verify AWS CLI command exist as we use it to get a token later.
   Try
   {
-    Get-Command -Name 'aws' | Out-Null
+    Get-Command -Name 'aws' -ErrorAction SilentlyContinue | Out-Null
   }
   Catch
   {
