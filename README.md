@@ -36,3 +36,13 @@ PS> Get-AWSToken `
         -MFAType 'token:software:totp' `
         -MFACode 123456
 ```
+### Stored Profiles
+Stored profiles are supported.
+```powershell
+PS> Get-AWSToken -Profile MyProfile
+```
+Create AWSLogin.csv with the following header.
+```
+"Name","OktaAppURI","RoleARN","PrincipalARN"
+```
+Set row values as appropriate. Store in the same directory as the module, $env:APPDATA, or the user's Documents directory.
