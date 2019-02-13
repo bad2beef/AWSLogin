@@ -37,6 +37,9 @@ Function Get-AWSToken
 
     .EXAMPLE
       Get-AWSToken -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance'
+    
+    .LINK
+    https://github.com/bad2beef/AWSLogin
   #>
 
   [CmdletBinding()]
