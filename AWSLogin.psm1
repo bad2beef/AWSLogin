@@ -1,42 +1,55 @@
 
+Function SHA256{
+  Param
+  (
+    [String]$String
+  )
+
+  $StringBuilder = New-Object -TypeName System.Text.StringBuilder
+  [System.Security.Cryptography.HashAlgorithm]::Create( 'SHA256' ).ComputeHash( [System.Text.Encoding]::Unicode.GetBytes( $String ) ) | ForEach-Object {
+    [Void]$Builder.Append( $_.ToString( 'x2' ) )
+  }
+  $StringBuilder.ToString().ToLower()
+}
+
 Function Get-AWSToken
 {
   <#
     .SYNOPSIS
-      Gets an AWS token via STS.
+    Gets an AWS token via STS.
 
     .DESCRIPTION
-      Gets an AWS token via STS. Tokens are suitable for use in API
-      calls, including use of AWS CLI. By default token data is written
-      to environment variables.
+    Gets an AWS token via STS. Tokens are suitable for use in API
+    calls, including use of AWS CLI. By default token data is written
+    to environment variables.
 
     .PARAMETER Profile
-      Stored profile to load parameters from. Profiles are defined in
-      AWSLogin.csv, in the module directory, $env:APPDATA, or
-      Documents. Format "Name","OktaAppURI","RoleARN","PrincipalARN".
+    Stored profile to load parameters from. Profiles are defined in
+    AWSLogin.csv, in the module directory, $env:APPDATA, or
+    Documents. Format "Name","OktaAppURI","RoleARN","PrincipalARN".
 
     .PARAMETER OktaAppURI
-      The full URI to the Okta app instance. This is the URI one would
-      navigate to if clicking on the application instance in the Okta
-      portal.
+    The full URI to the Okta app instance. This is the URI one would
+    navigate to if clicking on the application instance in the Okta
+    portal.
 
     .PARAMETER RoleARN
-      Full ARN of the AWS role to assume.
+    Full ARN of the AWS role to assume.
 
     .PARAMETER PrincipalARN
-      Full ARN of the AWS-integrated Identity Provider to use.
+    Full ARN of the AWS-integrated Identity Provider to use.
 
     .EXAMPLE
-      Get-AWSToken -Profile MyProfile
+    Get-AWSToken -Profile MyProfile
     
     .EXAMPLE
-      Get-AWSToken `
-        -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance' `
-        -RoleARN 'arn:aws:iam::XXXXXXXXXXXX:role/RoleToAssume' `
-        -PrincipalARN 'arn:aws:iam::XXXXXXXXXXXX:saml-provider/MySAMLProvider'
+    Get-AWSToken `
+      -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance' `
+      -RoleARN 'arn:aws:iam::XXXXXXXXXXXX:role/RoleToAssume' `
+      -PrincipalARN 'arn:aws:iam::XXXXXXXXXXXX:saml-provider/MySAMLProvider'
 
     .EXAMPLE
-      Get-AWSToken -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance'
+    Get-AWSToken -OktaAppURI 'https://mycompany.okta.com/home/SomeApp/AppID/Instance'
     
     .LINK
     https://github.com/bad2beef/AWSLogin
@@ -63,7 +76,10 @@ Function Get-AWSToken
       'token:software:totp'
     )]
     [String]$MFAType = 'push',
-    [String]$MFACode
+    [String]$MFACode,
+
+    [Parameter(DontShow)]
+    [String]$STSEndpoint = 'https://sts.amazonaws.com/'
   )
 
   DynamicParam
@@ -225,18 +241,26 @@ Function Get-AWSToken
     }
 
     Write-Verbose 'Getting AWS token.'
-    $Response = $( aws --output json sts assume-role-with-saml --role-arn $RoleARN --principal-arn $PrincipalARN --saml-assertion $OktaSAMLAssertion )
+    $RequestBody_PrincipalARN = [uri]::EscapeDataString( $PrincipalARN )
+    $RequestBody_RoleARN = [uri]::EscapeDataString( $RoleARN )
+    $RequestBody_SAML = [uri]::EscapeDataString( $OktaSAMLAssertion )
+
+    [XML]$Response = Invoke-RestMethod `
+      -Method Post `
+      -Uri 'https://sts.amazonaws.com/' `
+      -Body ( 'Action=AssumeRoleWithSAML&Version=2011-06-15&PrincipalArn={0}&RoleArn={1}&SAMLAssertion={2}' -f @( $RequestBody_PrincipalARN, $RequestBody_RoleARN, $RequestBody_SAML ) )
 
     # If we have SecretAccessKey, it all worked. Set in ENV to avoid persistence of creds on disk.
-    If ( $Response -like '*SecretAccessKey*' )
+    If ( $Response.AssumeRoleWithSAMLResponse.AssumeRoleWithSAMLResult.Credentials.SecretAccessKey )
     {
-      $ResponseJson = $Response | ConvertFrom-Json
-      $env:AWS_ACCESS_KEY_ID   = $ResponseJson.Credentials.AccessKeyId
-      $env:AWS_SECRET_ACCESS_KEY = $ResponseJson.Credentials.SecretAccessKey
-      $env:AWS_SESSION_TOKEN   = $ResponseJson.Credentials.SessionToken
+      $env:AWS_ACCESS_KEY_ID   = $Response.AssumeRoleWithSAMLResponse.AssumeRoleWithSAMLResult.Credentials.AccessKeyId
+      $env:AWS_SECRET_ACCESS_KEY = $Response.AssumeRoleWithSAMLResponse.AssumeRoleWithSAMLResult.Credentials.SecretAccessKey
+      $env:AWS_SESSION_TOKEN   = $Response.AssumeRoleWithSAMLResponse.AssumeRoleWithSAMLResult.Credentials.SessionToken
+      Write-Verbose ( 'Assumed role {0}' -f @( $Response.AssumeRoleWithSAMLResponse.AssumeRoleWithSAMLResult.AssumedRoleUser.Arn ) )
     }
     Else
     {
+      Write-Warning $Response.GetElementsByTagName( 'Message' )
       Write-Error 'Could not obtain a token.'
     }
   }
