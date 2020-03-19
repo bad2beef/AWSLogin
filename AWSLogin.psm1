@@ -211,14 +211,14 @@ Function Get-AWSToken
         $LastAccount = $Null
         For ( $Index = 0 ; $Index -lt $Roles.Count ; $Index++ )
         {
-          $RoleParts = $Roles[ $Index ][1].Split( @( ':', '/' ) )
+          $RoleParts = $Roles[ $Index ][1].Split( ':' )
           If ( $RoleParts[4] -notlike $LastAcount )
           {
             $LastAccount = $RoleParts[4]
             Write-Host ''
             Write-Host ( '  Account {0}' -f @( $RoleParts[4] ) )
           }
-          Write-Host ( '    {0,2}: {1}' -f @( ( $Index + 1 ), $RoleParts[6] ) )
+          Write-Host ( '    {0,2}: {1}' -f @( ( $Index + 1 ), $RoleParts[5].Substring(5) ) )
         }
 
         Write-Host ''
